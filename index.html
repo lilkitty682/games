@@ -69,14 +69,14 @@
 
     /* Fullscreen game container */
     #game-screen {
-        display: none; /* hidden by default */
+        display: none;
         position: relative;
         width: 100%;
         height: 100vh;
         overflow: hidden;
     }
 
-    /* Responsive iframe that fills screen */
+    /* Fullscreen iframe */
     #game-screen iframe {
         position: absolute;
         top: 0;
@@ -139,7 +139,7 @@
 <!-- Fullscreen game screen -->
 <div id="game-screen">
     <button id="back-btn">Back</button>
-    <iframe id="game-frame" src="" allowfullscreen></iframe>
+    <iframe id="game-frame" src="about:blank" allowfullscreen></iframe>
 </div>
 
 <script>
@@ -160,7 +160,11 @@ tiles.forEach(tile => {
     tile.addEventListener('click', () => {
         const url = tile.getAttribute('data-url');
         const iframe = document.getElementById('game-frame');
-        iframe.src = url;
+
+        // Cloak URL
+        iframe.src = "about:blank";
+        setTimeout(() => { iframe.src = url; }, 50);
+
         document.getElementById('home-screen').style.display = 'none';
         document.getElementById('game-screen').style.display = 'block';
     });
@@ -168,7 +172,8 @@ tiles.forEach(tile => {
 
 // Back button
 document.getElementById('back-btn').addEventListener('click', () => {
-    document.getElementById('game-frame').src = '';
+    const iframe = document.getElementById('game-frame');
+    iframe.src = "about:blank";
     document.getElementById('game-screen').style.display = 'none';
     document.getElementById('home-screen').style.display = 'flex';
 });
