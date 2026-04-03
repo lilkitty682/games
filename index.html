@@ -1,275 +1,112 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="UTF-8">
-<title>Launcher</title>
-</head>
 <body style="margin:0;background:#111;">
 
+<button id="start" style="position:absolute;opacity:0;">start</button>
+
 <script>
-let cloaked=false;
+let cloaked = false;
 
-function cloakPage(){
-if(cloaked)return;
-cloaked=true;
+function cloakPage() {
+    if (cloaked) return;
+    cloaked = true;
 
-const newTab=window.open('about:blank','_blank');
-if(!newTab)return;
+    const newTab = window.open('', '_blank');
+    if (!newTab) return;
 
-const cloakedHTML=`
+    const cloakedHTML = `
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <title>Game Hub</title>
 
+<script>
+// ✅ INSTANT anti-close (runs BEFORE anything else)
+window.onbeforeunload = function(e){
+    e.preventDefault();
+    e.returnValue = '';
+};
+<\/script>
+
 <style>
-html,body{margin:0;height:100%;font-family:sans-serif;background:#111;color:#fff;overflow:hidden;transition:.3s;}
-body.light{background:#f5f5f5;color:#111;}
-
+html,body{margin:0;height:100%;background:#111;color:#fff;font-family:sans-serif;}
 #home{display:flex;flex-direction:column;align-items:center;padding:20px;}
-#search{width:80%;max-width:500px;padding:10px;border-radius:8px;border:none;margin-bottom:10px;}
-
-#topbar{position:absolute;top:10px;right:10px;}
-#topbar button{margin-left:5px;padding:6px 10px;border:none;border-radius:5px;cursor:pointer;}
-
 #grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:15px;width:90%;max-width:1000px;}
-
-.tile{background:#222;border-radius:8px;text-align:center;cursor:pointer;overflow:hidden;position:relative;}
-.tile.dragging{opacity:.5;}
+.tile{background:#222;border-radius:8px;text-align:center;cursor:pointer;}
 .tile img{width:100%;height:120px;object-fit:cover;}
-.tile span{display:block;padding:5px;}
-
-.remove-btn{
-position:absolute;top:5px;right:5px;background:rgba(0,0,0,.7);
-border:none;color:white;border-radius:50%;width:22px;height:22px;cursor:pointer;
-}
-.remove-btn:hover{background:red;}
-
-.edit-btn{
-position:absolute;top:5px;left:5px;background:rgba(0,0,0,.7);
-border:none;color:white;border-radius:50%;width:22px;height:22px;cursor:pointer;
-}
-
-#game{display:none;position:relative;width:100%;height:100vh;opacity:0;transition:.4s;}
-#game.show{opacity:1;}
-
+#game{display:none;position:relative;height:100vh;}
 #frame{position:absolute;width:100%;height:100%;border:0;}
-
-#overlay{position:absolute;background:black;z-index:15;}
-
-#bar{position:absolute;bottom:0;right:0;z-index:20;padding:5px;}
-#back{position:absolute;top:10px;left:10px;z-index:20;padding:8px 12px;background:rgba(0,0,0,.7);border:none;color:white;}
-
-#addPanel{
-position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-background:#222;padding:20px;border-radius:10px;display:none;width:300px;
-}
-#addPanel input{width:100%;margin-bottom:10px;padding:8px;border:none;border-radius:5px;}
+#overlay{position:absolute;background:black;z-index:10;}
+#back{position:absolute;top:10px;left:10px;z-index:20;}
 </style>
 </head>
 
 <body>
 
 <div id="home">
-<input id="search" placeholder="Search games...">
-
-<div id="topbar">
-<button onclick="toggleMode()">🌙</button>
-<button onclick="openAdd()">＋</button>
+<div id="grid">
+<div class="tile" onclick="openGame('https://dgames.online/embed/slope')">
+<img src="image.jfif"><span>Slope</span>
 </div>
-
-<div id="grid"></div>
+<div class="tile" onclick="openGame('https://dgames.online/embed/tetris-ultra')">
+<img src="image.jfif"><span>Tetris</span>
+</div>
+</div>
 </div>
 
 <div id="game">
-<button id="back">Back</button>
+<button id="back" onclick="goBack()">Back</button>
 <iframe id="frame"></iframe>
 <div id="overlay"></div>
 </div>
 
-<div id="addPanel">
-<input id="title" placeholder="Game name">
-<input id="link" placeholder="URL or embed">
-<input id="thumb" placeholder="Thumbnail URL (optional)">
-<button onclick="addGame()">Add Game</button>
-</div>
-
 <script>
-
-// --- MODE ---
-function toggleMode(){
-document.body.classList.toggle("light");
-}
-
-// --- DEFAULT GAMES (LOCKED) ---
-const defaultGames=[
-{title:"Slope",url:"https://dgames.online/embed/slope",thumb:"image.jfif",locked:true},
-{title:"Tetris Ultra",url:"https://dgames.online/embed/tetris-ultra",thumb:"image.jfif",locked:true}
-];
-
-// --- LOAD ---
-let saved=JSON.parse(localStorage.getItem("games")||"[]");
-let games=[...defaultGames,...saved];
-
-// --- SAVE ---
-function save(){
-const custom=games.filter(g=>!g.locked);
-localStorage.setItem("games",JSON.stringify(custom));
-}
-
-// --- RENDER ---
-function render(){
-grid.innerHTML="";
-
-games.forEach((g,i)=>{
-const d=document.createElement("div");
-d.className="tile";
-d.draggable=true;
-
-d.innerHTML=`
-<img src="${g.thumb||'image.jfif'}">
-<span>${g.title}</span>
-${!g.locked?'<button class="remove-btn">✖</button>':''}
-<button class="edit-btn">✎</button>
-`;
-
-d.onclick=()=>openGame(g.url);
-
-// REMOVE
-if(!g.locked){
-d.querySelector(".remove-btn").onclick=(e)=>{
-e.stopPropagation();
-games.splice(i,1);
-save();
-render();
-};
-}
-
-// EDIT
-d.querySelector(".edit-btn").onclick=(e)=>{
-e.stopPropagation();
-const name=prompt("New name:",g.title);
-if(name) g.title=name;
-
-const thumb=prompt("Thumbnail URL:",g.thumb||"");
-if(thumb) g.thumb=thumb;
-
-save();
-render();
-};
-
-// DRAG
-d.addEventListener("dragstart",()=>d.classList.add("dragging"));
-d.addEventListener("dragend",()=>d.classList.remove("dragging"));
-
-grid.addEventListener("dragover",e=>{
-e.preventDefault();
-const dragging=document.querySelector(".dragging");
-const after=getDragAfter(e.clientY);
-if(after==null) grid.appendChild(dragging);
-else grid.insertBefore(dragging,after);
-});
-
-// reorder array on drop
-d.addEventListener("drop",()=>{
-games=[...grid.children].map(el=>{
-const title=el.querySelector("span").innerText;
-return games.find(g=>g.title===title);
-});
-save();
-});
-
-grid.appendChild(d);
-});
-}
-
-// helper
-function getDragAfter(y){
-const els=[...grid.querySelectorAll(".tile:not(.dragging)")];
-return els.reduce((closest,child)=>{
-const box=child.getBoundingClientRect();
-const offset=y-box.top-box.height/2;
-if(offset<0 && offset>closest.offset){
-return {offset:offset,element:child};
-}else return closest;
-},{offset:Number.NEGATIVE_INFINITY}).element;
-}
-
-render();
-
-// --- ADD ---
-function openAdd(){addPanel.style.display="block";}
-
-function addGame(){
-let title=document.getElementById("title").value;
-let input=document.getElementById("link").value;
-let thumb=document.getElementById("thumb").value;
-
-let url=input;
-const match=input.match(/src="([^"]+)"/);
-if(match) url=match[1];
-
-games.push({title,url,thumb});
-save();
-addPanel.style.display="none";
-render();
-}
-
-// --- SEARCH ---
-search.oninput=()=>{
-const q=search.value.toLowerCase();
-document.querySelectorAll(".tile").forEach(t=>{
-t.style.display=t.innerText.toLowerCase().includes(q)?"block":"none";
-});
-};
-
-// --- OVERLAY ---
 function updateOverlay(){
-const rect=frame.getBoundingClientRect();
-overlay.style.width=rect.width+"px";
-overlay.style.height="60px";
-overlay.style.left=rect.left+"px";
-overlay.style.bottom=(window.innerHeight-rect.bottom)+"px";
+    const rect=frame.getBoundingClientRect();
+    overlay.style.width=rect.width+'px';
+    overlay.style.height='60px';
+    overlay.style.left=rect.left+'px';
+    overlay.style.bottom=(window.innerHeight-rect.bottom)+'px';
 }
-window.addEventListener("resize",updateOverlay);
+window.addEventListener('resize',updateOverlay);
 
-// --- GAME ---
 function openGame(url){
-frame.src=url;
-home.style.display="none";
-game.style.display="block";
-setTimeout(()=>{game.classList.add("show");updateOverlay();},50);
+    frame.src=url;
+    home.style.display='none';
+    game.style.display='block';
+    setTimeout(updateOverlay,50);
 }
 
-back.onclick=()=>{
-frame.src="";
-game.classList.remove("show");
-setTimeout(()=>{game.style.display="none";home.style.display="flex";},300);
-};
-
-// anti-close
-window.addEventListener("beforeunload",e=>{
-e.preventDefault();e.returnValue="";
-});
-
+function goBack(){
+    frame.src='';
+    game.style.display='none';
+    home.style.display='flex';
+}
 <\/script>
 
 </body>
 </html>
 `;
 
-newTab.document.open();
-newTab.document.write(cloakedHTML);
-newTab.document.close();
+    // inject instantly
+    newTab.document.open();
+    newTab.document.write(cloakedHTML);
+    newTab.document.close();
 
-setTimeout(()=>{
-window.open('about:blank','_self');
-window.close();
-},100);
+    // close original tab reliably
+    setTimeout(()=>{
+        window.open('', '_self');
+        window.close();
+    },50);
 }
 
-document.addEventListener('click',cloakPage,{once:true});
+// ✅ AUTO trigger (works like instant)
+window.onload = () => {
+    document.getElementById('start').click();
+};
+
+document.getElementById('start').onclick = cloakPage;
 </script>
 
 </body>
