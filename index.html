@@ -15,6 +15,7 @@ function cloakPage() {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game Hub</title>
+
 <style>
 html, body {
     margin: 0;
@@ -24,12 +25,15 @@ html, body {
     background: #111;
     color: #fff;
 }
+
+/* Home */
 #home-screen {
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: 20px;
 }
+
 #search-bar {
     width: 80%;
     max-width: 500px;
@@ -39,6 +43,8 @@ html, body {
     border: none;
     margin-bottom: 20px;
 }
+
+/* Grid */
 #game-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -46,6 +52,7 @@ html, body {
     width: 90%;
     max-width: 1000px;
 }
+
 .game-tile {
     background: #222;
     border-radius: 8px;
@@ -54,45 +61,73 @@ html, body {
     text-align: center;
     transition: transform 0.2s;
 }
+
 .game-tile:hover {
     transform: scale(1.05);
 }
+
 .game-tile img {
     width: 100%;
     height: 120px;
     object-fit: cover;
-    display: block;
 }
+
 .game-tile span {
     display: block;
     padding: 5px;
 }
+
+/* Game screen */
 #game-screen {
     display: none;
     position: relative;
     width: 100%;
     height: 100vh;
+    opacity: 0;
+    transition: opacity 0.4s ease;
 }
-#game-screen iframe {
+
+#game-screen.active {
+    opacity: 1;
+}
+
+/* Game iframe */
+#game-frame {
     position: absolute;
     width: 100%;
     height: 100%;
     border: 0;
 }
+
+/* Bottom bar */
+#bottom-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 4.44444444%;
+    background: black;
+    z-index: 10;
+}
+
+/* Back button (on top of bar) */
 #back-btn {
     position: absolute;
-    top: 10px;
+    bottom: 6px;
     left: 10px;
-    z-index: 1000;
-    padding: 10px 15px;
+    z-index: 20;
+    padding: 8px 14px;
+    font-size: 14px;
     cursor: pointer;
     border: none;
     border-radius: 5px;
-    background: rgba(0,0,0,0.7);
+    background: rgba(255,255,255,0.1);
     color: #fff;
+    backdrop-filter: blur(4px);
 }
 </style>
 </head>
+
 <body>
 
 <div id="home-screen">
@@ -124,8 +159,9 @@ iframe{width:100%;height:100%;border:0;}
 </div>
 
 <div id="game-screen">
-    <button id="back-btn">Back</button>
     <iframe id="game-frame"></iframe>
+    <div id="bottom-bar"></div>
+    <button id="back-btn">Back</button>
 </div>
 
 <script>
@@ -147,7 +183,7 @@ searchInput.addEventListener("input", function(){
     });
 });
 
-// Click logic
+// Open game with fade
 tiles.forEach(tile=>{
     tile.addEventListener("click", ()=>{
         const iframe = document.getElementById("game-frame");
@@ -159,19 +195,29 @@ tiles.forEach(tile=>{
         doc.close();
 
         document.getElementById("home-screen").style.display = "none";
-        document.getElementById("game-screen").style.display = "block";
+        const gameScreen = document.getElementById("game-screen");
+        gameScreen.style.display = "block";
+
+        // trigger fade
+        setTimeout(()=>gameScreen.classList.add("active"), 10);
     });
 });
 
 // Back button
 document.getElementById("back-btn").addEventListener("click", ()=>{
     const iframe = document.getElementById("game-frame");
+
     iframe.src = "";
     iframe.contentWindow.document.open();
     iframe.contentWindow.document.close();
 
-    document.getElementById("game-screen").style.display = "none";
-    document.getElementById("home-screen").style.display = "flex";
+    const gameScreen = document.getElementById("game-screen");
+    gameScreen.classList.remove("active");
+
+    setTimeout(()=>{
+        gameScreen.style.display = "none";
+        document.getElementById("home-screen").style.display = "flex";
+    }, 300);
 });
 <\/script>
 
@@ -183,33 +229,11 @@ document.getElementById("back-btn").addEventListener("click", ()=>{
     newTab.document.write(cloakedHTML);
     newTab.document.close();
 
-   setTimeout(() => {
-    // Change tab title
-    document.title = "Classes";
-
-    // Change favicon to Google Classroom
-    const link = document.createElement("link");
-    link.rel = "icon";
-    link.href = "https://ssl.gstatic.com/classroom/favicon.png";
-    document.head.appendChild(link);
-
-    // Replace page content with a fake loading screen
-    document.body.innerHTML = `
-        <div style="
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            height:100vh;
-            background:#f1f3f4;
-            font-family:Arial, sans-serif;
-            color:#5f6368;
-            flex-direction:column;
-        ">
-            <img src="https://ssl.gstatic.com/classroom/logo_square_rounded.svg" width="80" style="margin-bottom:20px;">
-            <h2>Loading Classroom...</h2>
-        </div>
-    `;
-}, 100);
+    setTimeout(() => {
+        window.close();
+        document.body.innerHTML = "";
+        document.body.style.background = "#000";
+    }, 100);
 }
 
 // Trigger cloaking
