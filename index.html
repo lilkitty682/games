@@ -7,77 +7,65 @@
 <body style="margin:0;background:#111;">
 
 <script>
-let cloaked = false;
+let cloaked=false;
 
-function cloakPage() {
-if (cloaked) return;
-cloaked = true;
+function cloakPage(){
+if(cloaked)return;
+cloaked=true;
 
-const newTab = window.open('about:blank','_blank');
-if (!newTab) return;
+const newTab=window.open('about:blank','_blank');
+if(!newTab)return;
 
-const cloakedHTML = `
+const cloakedHTML=`
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game Hub</title>
 
 <style>
 html,body{margin:0;height:100%;font-family:sans-serif;background:#111;color:#fff;overflow:hidden;transition:.3s;}
-
 body.light{background:#f5f5f5;color:#111;}
 
 #home{display:flex;flex-direction:column;align-items:center;padding:20px;}
 #search{width:80%;max-width:500px;padding:10px;border-radius:8px;border:none;margin-bottom:10px;}
 
-#topbar{position:absolute;top:10px;right:10px;z-index:50;}
+#topbar{position:absolute;top:10px;right:10px;}
 #topbar button{margin-left:5px;padding:6px 10px;border:none;border-radius:5px;cursor:pointer;}
 
 #grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:15px;width:90%;max-width:1000px;}
 
-.tile{background:#222;border-radius:8px;cursor:pointer;text-align:center;overflow:hidden;transition:.2s;}
-.tile:hover{transform:scale(1.05);}
+.tile{background:#222;border-radius:8px;text-align:center;cursor:pointer;overflow:hidden;position:relative;}
+.tile.dragging{opacity:.5;}
 .tile img{width:100%;height:120px;object-fit:cover;}
 .tile span{display:block;padding:5px;}
+
+.remove-btn{
+position:absolute;top:5px;right:5px;background:rgba(0,0,0,.7);
+border:none;color:white;border-radius:50%;width:22px;height:22px;cursor:pointer;
+}
+.remove-btn:hover{background:red;}
+
+.edit-btn{
+position:absolute;top:5px;left:5px;background:rgba(0,0,0,.7);
+border:none;color:white;border-radius:50%;width:22px;height:22px;cursor:pointer;
+}
 
 #game{display:none;position:relative;width:100%;height:100vh;opacity:0;transition:.4s;}
 #game.show{opacity:1;}
 
-#frame{position:absolute;top:0;left:0;width:100%;height:100%;border:0;display:block;}
+#frame{position:absolute;width:100%;height:100%;border:0;}
 
 #overlay{position:absolute;background:black;z-index:15;}
 
 #bar{position:absolute;bottom:0;right:0;z-index:20;padding:5px;}
-#bar button{margin-left:5px;padding:5px;border:none;border-radius:4px;cursor:pointer;}
-
-#back{position:absolute;top:10px;left:10px;z-index:20;padding:8px 12px;border:none;border-radius:5px;background:rgba(0,0,0,.7);color:#fff;cursor:pointer;}
+#back{position:absolute;top:10px;left:10px;z-index:20;padding:8px 12px;background:rgba(0,0,0,.7);border:none;color:white;}
 
 #addPanel{
-position:fixed;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-background:#222;
-padding:20px;
-border-radius:10px;
-display:none;
-z-index:100;
-width:300px;
+position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+background:#222;padding:20px;border-radius:10px;display:none;width:300px;
 }
-#addPanel input{
-width:100%;
-margin-bottom:10px;
-padding:8px;
-border:none;
-border-radius:5px;
-}
-#addPanel button{width:100%;padding:8px;}
-
-@media(max-width:600px){
-.tile img{height:100px;}
-}
+#addPanel input{width:100%;margin-bottom:10px;padding:8px;border:none;border-radius:5px;}
 </style>
 </head>
 
@@ -87,7 +75,7 @@ border-radius:5px;
 <input id="search" placeholder="Search games...">
 
 <div id="topbar">
-<button id="modeBtn">🌙</button>
+<button onclick="toggleMode()">🌙</button>
 <button onclick="openAdd()">＋</button>
 </div>
 
@@ -98,15 +86,12 @@ border-radius:5px;
 <button id="back">Back</button>
 <iframe id="frame"></iframe>
 <div id="overlay"></div>
-
-<div id="bar">
-<button id="modeBtn2">🌙</button>
-</div>
 </div>
 
 <div id="addPanel">
 <input id="title" placeholder="Game name">
-<input id="link" placeholder="Paste URL or embed">
+<input id="link" placeholder="URL or embed">
+<input id="thumb" placeholder="Thumbnail URL (optional)">
 <button onclick="addGame()">Add Game</button>
 </div>
 
@@ -115,53 +100,118 @@ border-radius:5px;
 // --- MODE ---
 function toggleMode(){
 document.body.classList.toggle("light");
-const icon=document.body.classList.contains("light")?"🌞":"🌙";
-modeBtn.textContent=icon;
-modeBtn2.textContent=icon;
 }
-modeBtn.onclick=toggleMode;
-modeBtn2.onclick=toggleMode;
 
-// --- STORAGE ---
-let games = JSON.parse(localStorage.getItem("games")||"[]");
-
-// default games
-if(games.length===0){
-games=[
-{title:"Slope",url:"https://dgames.online/embed/slope"},
-{title:"Tetris Ultra",url:"https://dgames.online/embed/tetris-ultra"}
+// --- DEFAULT GAMES (LOCKED) ---
+const defaultGames=[
+{title:"Slope",url:"https://dgames.online/embed/slope",thumb:"image.jfif",locked:true},
+{title:"Tetris Ultra",url:"https://dgames.online/embed/tetris-ultra",thumb:"image.jfif",locked:true}
 ];
+
+// --- LOAD ---
+let saved=JSON.parse(localStorage.getItem("games")||"[]");
+let games=[...defaultGames,...saved];
+
+// --- SAVE ---
+function save(){
+const custom=games.filter(g=>!g.locked);
+localStorage.setItem("games",JSON.stringify(custom));
 }
 
 // --- RENDER ---
 function render(){
 grid.innerHTML="";
+
 games.forEach((g,i)=>{
 const d=document.createElement("div");
 d.className="tile";
-d.innerHTML="<img src='image.jfif'><span>"+g.title+"</span>";
+d.draggable=true;
+
+d.innerHTML=`
+<img src="${g.thumb||'image.jfif'}">
+<span>${g.title}</span>
+${!g.locked?'<button class="remove-btn">✖</button>':''}
+<button class="edit-btn">✎</button>
+`;
+
 d.onclick=()=>openGame(g.url);
+
+// REMOVE
+if(!g.locked){
+d.querySelector(".remove-btn").onclick=(e)=>{
+e.stopPropagation();
+games.splice(i,1);
+save();
+render();
+};
+}
+
+// EDIT
+d.querySelector(".edit-btn").onclick=(e)=>{
+e.stopPropagation();
+const name=prompt("New name:",g.title);
+if(name) g.title=name;
+
+const thumb=prompt("Thumbnail URL:",g.thumb||"");
+if(thumb) g.thumb=thumb;
+
+save();
+render();
+};
+
+// DRAG
+d.addEventListener("dragstart",()=>d.classList.add("dragging"));
+d.addEventListener("dragend",()=>d.classList.remove("dragging"));
+
+grid.addEventListener("dragover",e=>{
+e.preventDefault();
+const dragging=document.querySelector(".dragging");
+const after=getDragAfter(e.clientY);
+if(after==null) grid.appendChild(dragging);
+else grid.insertBefore(dragging,after);
+});
+
+// reorder array on drop
+d.addEventListener("drop",()=>{
+games=[...grid.children].map(el=>{
+const title=el.querySelector("span").innerText;
+return games.find(g=>g.title===title);
+});
+save();
+});
+
 grid.appendChild(d);
 });
 }
+
+// helper
+function getDragAfter(y){
+const els=[...grid.querySelectorAll(".tile:not(.dragging)")];
+return els.reduce((closest,child)=>{
+const box=child.getBoundingClientRect();
+const offset=y-box.top-box.height/2;
+if(offset<0 && offset>closest.offset){
+return {offset:offset,element:child};
+}else return closest;
+},{offset:Number.NEGATIVE_INFINITY}).element;
+}
+
 render();
 
-// --- ADD UI ---
-function openAdd(){ addPanel.style.display="block"; }
+// --- ADD ---
+function openAdd(){addPanel.style.display="block";}
 
 function addGame(){
 let title=document.getElementById("title").value;
 let input=document.getElementById("link").value;
+let thumb=document.getElementById("thumb").value;
 
 let url=input;
-
-// auto extract iframe src
 const match=input.match(/src="([^"]+)"/);
 if(match) url=match[1];
 
-games.push({title,url});
-localStorage.setItem("games",JSON.stringify(games));
-
+games.push({title,url,thumb});
+save();
 addPanel.style.display="none";
 render();
 }
@@ -174,7 +224,7 @@ t.style.display=t.innerText.toLowerCase().includes(q)?"block":"none";
 });
 };
 
-// --- OVERLAY FIX ---
+// --- OVERLAY ---
 function updateOverlay(){
 const rect=frame.getBoundingClientRect();
 overlay.style.width=rect.width+"px";
@@ -184,34 +234,23 @@ overlay.style.bottom=(window.innerHeight-rect.bottom)+"px";
 }
 window.addEventListener("resize",updateOverlay);
 
-// --- OPEN GAME ---
+// --- GAME ---
 function openGame(url){
 frame.src=url;
-
 home.style.display="none";
 game.style.display="block";
-
-setTimeout(()=>{
-game.classList.add("show");
-updateOverlay();
-},50);
+setTimeout(()=>{game.classList.add("show");updateOverlay();},50);
 }
 
-// --- BACK ---
 back.onclick=()=>{
 frame.src="";
 game.classList.remove("show");
-
-setTimeout(()=>{
-game.style.display="none";
-home.style.display="flex";
-},300);
+setTimeout(()=>{game.style.display="none";home.style.display="flex";},300);
 };
 
-// --- ANTI CLOSE ---
+// anti-close
 window.addEventListener("beforeunload",e=>{
-e.preventDefault();
-e.returnValue="";
+e.preventDefault();e.returnValue="";
 });
 
 <\/script>
