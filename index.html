@@ -8,8 +8,7 @@ function cloakPage() {
     const newTab = window.open('about:blank', '_blank');
     if (!newTab) return;
 
-    // Build the full HTML for the cloaked tab manually
-const cloakedHTML = `
+    const cloakedHTML = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -73,7 +72,6 @@ html, body {
     position: relative;
     width: 100%;
     height: 100vh;
-    overflow: hidden;
 }
 #game-screen iframe {
     position: absolute;
@@ -101,12 +99,24 @@ html, body {
     <input type="text" id="search-bar" placeholder="Search games...">
 
     <div id="game-grid">
-        <div class="game-tile" data-url="https://dgames.online/embed/slope">
+        <div class="game-tile" data-html='
+<style>
+html,body{margin:0;height:100%;overflow:hidden;}
+iframe{width:100%;height:100%;border:0;}
+</style>
+<iframe src="https://dgames.online/embed/slope" allowfullscreen></iframe>
+'>
             <img src="image.jfif">
             <span>Slope</span>
         </div>
 
-        <div class="game-tile" data-html='<iframe src="https://dgames.online/embed/tetris-ultra" width="800" height="600" frameborder="0" allowfullscreen></iframe>'>
+        <div class="game-tile" data-html='
+<style>
+html,body{margin:0;height:100%;overflow:hidden;}
+iframe{width:100%;height:100%;border:0;}
+</style>
+<iframe src="https://dgames.online/embed/tetris-ultra" allowfullscreen></iframe>
+'>
             <img src="image.jfif">
             <span>Tetris Ultra</span>
         </div>
@@ -120,53 +130,48 @@ html, body {
 
 <script>
 // Anti-close
-window.addEventListener('beforeunload', function(e) {
+window.addEventListener("beforeunload", function(e){
     e.preventDefault();
-    e.returnValue = '';
+    e.returnValue = "";
 });
 
 // Search
-const searchInput = document.getElementById('search-bar');
-const tiles = document.querySelectorAll('.game-tile');
+const searchInput = document.getElementById("search-bar");
+const tiles = document.querySelectorAll(".game-tile");
 
-searchInput.addEventListener('input', function() {
+searchInput.addEventListener("input", function(){
     const query = this.value.toLowerCase();
-    tiles.forEach(tile => {
-        const title = tile.querySelector('span').innerText.toLowerCase();
-        tile.style.display = title.includes(query) ? 'block' : 'none';
+    tiles.forEach(tile=>{
+        const title = tile.querySelector("span").innerText.toLowerCase();
+        tile.style.display = title.includes(query) ? "block" : "none";
     });
 });
 
-// Click logic (FIXED)
-tiles.forEach(tile => {
-    tile.addEventListener('click', () => {
-        const iframe = document.getElementById('game-frame');
-        const url = tile.getAttribute('data-url');
-        const htmlCode = tile.getAttribute('data-html');
+// Click logic
+tiles.forEach(tile=>{
+    tile.addEventListener("click", ()=>{
+        const iframe = document.getElementById("game-frame");
+        const htmlCode = tile.getAttribute("data-html");
 
-        if (htmlCode && htmlCode.trim() !== "") {
-            const doc = iframe.contentWindow.document;
-            doc.open();
-            doc.write(htmlCode);
-            doc.close();
-        } else if (url) {
-            iframe.src = url;
-        }
+        const doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write(htmlCode);
+        doc.close();
 
-        document.getElementById('home-screen').style.display = 'none';
-        document.getElementById('game-screen').style.display = 'block';
+        document.getElementById("home-screen").style.display = "none";
+        document.getElementById("game-screen").style.display = "block";
     });
 });
 
 // Back button
-document.getElementById('back-btn').addEventListener('click', () => {
-    const iframe = document.getElementById('game-frame');
-    iframe.src = '';
+document.getElementById("back-btn").addEventListener("click", ()=>{
+    const iframe = document.getElementById("game-frame");
+    iframe.src = "";
     iframe.contentWindow.document.open();
     iframe.contentWindow.document.close();
 
-    document.getElementById('game-screen').style.display = 'none';
-    document.getElementById('home-screen').style.display = 'flex';
+    document.getElementById("game-screen").style.display = "none";
+    document.getElementById("home-screen").style.display = "flex";
 });
 <\/script>
 
@@ -174,15 +179,13 @@ document.getElementById('back-btn').addEventListener('click', () => {
 </html>
 `;
 
-    // Write HTML into the new tab
     newTab.document.open();
     newTab.document.write(cloakedHTML);
     newTab.document.close();
 
-    // Close the original tab
     setTimeout(() => window.close(), 100);
 }
 
-// Trigger cloaking on first click
-document.addEventListener('click', cloakPage, { once: true });
+// Trigger cloaking
+document.addEventListener("click", cloakPage, { once: true });
 </script>
