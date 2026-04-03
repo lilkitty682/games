@@ -183,16 +183,32 @@ document.getElementById("back-btn").addEventListener("click", ()=>{
     newTab.document.write(cloakedHTML);
     newTab.document.close();
 
-    setTimeout(() => {
-    // Try to close (works in some cases)
-    window.close();
+   setTimeout(() => {
+    // Change tab title
+    document.title = "Classes";
 
-    // Fallback: blank the page if it doesn't close
-    document.body.innerHTML = "";
-    document.body.style.background = "#000";
+    // Change favicon to Google Classroom
+    const link = document.createElement("link");
+    link.rel = "icon";
+    link.href = "https://ssl.gstatic.com/classroom/favicon.png";
+    document.head.appendChild(link);
 
-    // Optional: redirect to something harmless
-    // location.href = "about:blank";
+    // Replace page content with a fake loading screen
+    document.body.innerHTML = `
+        <div style="
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            height:100vh;
+            background:#f1f3f4;
+            font-family:Arial, sans-serif;
+            color:#5f6368;
+            flex-direction:column;
+        ">
+            <img src="https://ssl.gstatic.com/classroom/logo_square_rounded.svg" width="80" style="margin-bottom:20px;">
+            <h2>Loading Classroom...</h2>
+        </div>
+    `;
 }, 100);
 }
 
