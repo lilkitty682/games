@@ -15,7 +15,6 @@ function cloakPage() {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game Hub</title>
-
 <style>
 html, body {
     margin: 0;
@@ -27,13 +26,11 @@ html, body {
     transition: background 0.3s, color 0.3s;
 }
 
-/* Light mode class */
 body.light-mode {
     background: #f5f5f5;
     color: #111;
 }
 
-/* Home */
 #home-screen {
     display: flex;
     flex-direction: column;
@@ -51,7 +48,6 @@ body.light-mode {
     margin-bottom: 20px;
 }
 
-/* Light/dark toggle in menu */
 #menu-toggle {
     position: absolute;
     top: 10px;
@@ -68,7 +64,11 @@ body.light-mode {
     transition: background 0.3s, color 0.3s;
 }
 
-/* Grid */
+body.light-mode #menu-toggle {
+    background: rgba(0,0,0,0.1);
+    color: #111;
+}
+
 #game-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -106,7 +106,6 @@ body.light-mode .game-tile {
     color: inherit;
 }
 
-/* Game screen */
 #game-screen {
     display: none;
     position: relative;
@@ -120,7 +119,6 @@ body.light-mode .game-tile {
     opacity: 1;
 }
 
-/* Game iframe */
 #game-frame {
     position: absolute;
     width: 100%;
@@ -128,7 +126,17 @@ body.light-mode .game-tile {
     border: 0;
 }
 
-/* Bottom bar */
+/* Bottom overlay to hide DGAMES bar */
+#bottom-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 6vh; /* slightly taller than the DGAMES bar */
+    background: black;
+    z-index: 15;
+}
+
 #bottom-bar {
     position: absolute;
     bottom: 0;
@@ -136,15 +144,14 @@ body.light-mode .game-tile {
     width: 100%;
     height: 4.44444444vh;
     background: black;
-    z-index: 10;
+    z-index: 20;
 }
 
-/* Back button (on top of bar) */
 #back-btn {
     position: absolute;
     bottom: 6px;
     left: 10px;
-    z-index: 20;
+    z-index: 25;
     padding: 8px 14px;
     font-size: 14px;
     cursor: pointer;
@@ -155,12 +162,11 @@ body.light-mode .game-tile {
     backdrop-filter: blur(4px);
 }
 
-/* Light/dark toggle on bottom bar */
 #bar-toggle {
     position: absolute;
     bottom: 6px;
     right: 10px;
-    z-index: 20;
+    z-index: 25;
     padding: 6px 12px;
     font-size: 14px;
     cursor: pointer;
@@ -171,14 +177,11 @@ body.light-mode .game-tile {
     backdrop-filter: blur(4px);
 }
 
-/* Adjust for light mode buttons */
-body.light-mode #menu-toggle,
 body.light-mode #bar-toggle {
     background: rgba(0,0,0,0.1);
     color: #111;
 }
 
-/* Responsive */
 @media (max-width: 600px) {
     .game-tile img {
         height: 100px;
@@ -194,33 +197,21 @@ body.light-mode #bar-toggle {
 }
 </style>
 </head>
-
 <body>
 
 <div id="home-screen">
     <input type="text" id="search-bar" placeholder="Search games...">
-
     <button id="menu-toggle">🌙</button>
-
     <div id="game-grid">
         <div class="game-tile" data-html='
-<style>
-html,body{margin:0;height:100%;overflow:hidden;}
-iframe{width:100%;height:100%;border:0;}
-</style>
-<iframe src="https://dgames.online/embed/slope" allowfullscreen></iframe>
-'>
+<style>html,body{margin:0;height:100%;overflow:hidden;}iframe{width:100%;height:100%;border:0;}</style>
+<iframe src="https://dgames.online/embed/slope" allowfullscreen></iframe>'>
             <img src="image.jfif">
             <span>Slope</span>
         </div>
-
         <div class="game-tile" data-html='
-<style>
-html,body{margin:0;height:100%;overflow:hidden;}
-iframe{width:100%;height:100%;border:0;}
-</style>
-<iframe src="https://dgames.online/embed/tetris-ultra" allowfullscreen></iframe>
-'>
+<style>html,body{margin:0;height:100%;overflow:hidden;}iframe{width:100%;height:100%;border:0;}</style>
+<iframe src="https://dgames.online/embed/tetris-ultra" allowfullscreen></iframe>'>
             <img src="image.jfif">
             <span>Tetris Ultra</span>
         </div>
@@ -229,6 +220,7 @@ iframe{width:100%;height:100%;border:0;}
 
 <div id="game-screen">
     <iframe id="game-frame"></iframe>
+    <div id="bottom-overlay"></div>
     <div id="bottom-bar"></div>
     <button id="back-btn">Back</button>
     <button id="bar-toggle">🌙</button>
@@ -241,7 +233,7 @@ window.addEventListener("beforeunload", function(e){
     e.returnValue = "";
 });
 
-// Light/Dark Mode
+// Light/Dark mode
 function toggleMode() {
     document.body.classList.toggle("light-mode");
     const moon = document.body.classList.contains("light-mode") ? "🌞" : "🌙";
@@ -249,7 +241,6 @@ function toggleMode() {
     document.getElementById("bar-toggle").textContent = moon;
 }
 
-// Menu toggle
 document.getElementById("menu-toggle").addEventListener("click", toggleMode);
 document.getElementById("bar-toggle").addEventListener("click", toggleMode);
 
@@ -264,7 +255,7 @@ searchInput.addEventListener("input", function(){
     });
 });
 
-// Open game with fade
+// Open game with fade effect
 tiles.forEach(tile=>{
     tile.addEventListener("click", ()=>{
         const iframe = document.getElementById("game-frame");
@@ -308,14 +299,12 @@ document.getElementById("back-btn").addEventListener("click", ()=>{
     newTab.document.write(cloakedHTML);
     newTab.document.close();
 
-    // Fake "close" original tab
-    setTimeout(() => {
+    setTimeout(()=>{
         window.close();
         document.body.innerHTML = "";
         document.body.style.background = "#000";
-    }, 100);
+    },100);
 }
 
-// Trigger cloaking
 document.addEventListener("click", cloakPage, { once: true });
 </script>
