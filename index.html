@@ -183,7 +183,17 @@ document.getElementById("back-btn").addEventListener("click", ()=>{
     newTab.document.write(cloakedHTML);
     newTab.document.close();
 
-    setTimeout(() => window.close(), 100);
+    setTimeout(() => {
+    // Try to close (works in some cases)
+    window.close();
+
+    // Fallback: blank the page if it doesn't close
+    document.body.innerHTML = "";
+    document.body.style.background = "#000";
+
+    // Optional: redirect to something harmless
+    // location.href = "about:blank";
+}, 100);
 }
 
 // Trigger cloaking
