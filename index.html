@@ -76,10 +76,6 @@ html, body {
 }
 #bottom-overlay {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: max(8vh, 50px); /* ensures footer is fully covered */
     background: black;
     z-index: 15;
 }
@@ -121,7 +117,6 @@ html, body {
 </head>
 <body>
 
-<!-- Home screen -->
 <div id="home-screen">
     <input type="text" id="search-bar" placeholder="Search games...">
     <div id="game-grid">
@@ -136,7 +131,6 @@ html, body {
     </div>
 </div>
 
-<!-- Game screen -->
 <div id="game-screen">
     <button id="back-btn">Back</button>
     <iframe id="game-frame" src="" allowfullscreen></iframe>
@@ -159,6 +153,18 @@ searchInput.addEventListener('input', function() {
     });
 });
 
+// Update overlay position dynamically
+function updateOverlay() {
+    const iframe = document.getElementById('game-frame');
+    const overlay = document.getElementById('bottom-overlay');
+    if (!iframe || !overlay) return;
+    const rect = iframe.getBoundingClientRect();
+    overlay.style.width = rect.width + 'px';
+    overlay.style.height = '50px'; // minimum height
+    overlay.style.left = rect.left + 'px';
+    overlay.style.bottom = window.innerHeight - rect.bottom + 'px';
+}
+
 // Click on game tiles
 tiles.forEach(tile => {
     tile.addEventListener('click', () => {
@@ -168,7 +174,6 @@ tiles.forEach(tile => {
 
         if(url) iframe.src = url;
         else if(htmlEmbed) {
-            // Write HTML string into iframe
             const doc = iframe.contentWindow.document;
             doc.open();
             doc.write(htmlEmbed);
@@ -178,7 +183,10 @@ tiles.forEach(tile => {
         document.getElementById('home-screen').style.display = 'none';
         const gameScreen = document.getElementById('game-screen');
         gameScreen.style.display = 'block';
-        setTimeout(()=> gameScreen.classList.add('show'), 50); // fade in
+        setTimeout(()=> {
+            gameScreen.classList.add('show');
+            updateOverlay();
+        }, 50);
     });
 });
 
@@ -205,6 +213,9 @@ darkBtn.addEventListener('click', ()=>{
     document.body.style.background = '#111';
     document.body.style.color = '#fff';
 });
+
+// Update overlay on resize to fix horizontal and vertical scaling
+window.addEventListener('resize', updateOverlay);
 </script>
 </body>
 </html>
