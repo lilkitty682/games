@@ -5,16 +5,16 @@
 <button id="start" style="position:absolute;opacity:0;">start</button>
 
 <script>
-let cloaked = false;
+let cloaked=false;
 
-function cloakPage() {
-    if (cloaked) return;
-    cloaked = true;
+function cloakPage(){
+if(cloaked)return;
+cloaked=true;
 
-    const newTab = window.open('', '_blank');
-    if (!newTab) return;
+const newTab=window.open('','_blank');
+if(!newTab)return;
 
-    const cloakedHTML = `
+const cloakedHTML = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -22,91 +22,215 @@ function cloakPage() {
 <title>Game Hub</title>
 
 <script>
-// ✅ INSTANT anti-close (runs BEFORE anything else)
-window.onbeforeunload = function(e){
-    e.preventDefault();
-    e.returnValue = '';
+// ✅ instant anti-close
+window.onbeforeunload=function(e){
+e.preventDefault();
+e.returnValue='';
 };
 <\/script>
 
 <style>
-html,body{margin:0;height:100%;background:#111;color:#fff;font-family:sans-serif;}
+html,body{margin:0;height:100%;font-family:sans-serif;background:#111;color:#fff;overflow:hidden;transition:.3s;}
+body.light{background:#f5f5f5;color:#111;}
+
 #home{display:flex;flex-direction:column;align-items:center;padding:20px;}
+#search{width:80%;max-width:500px;padding:10px;border-radius:8px;border:none;margin-bottom:10px;}
+
+#topbar{position:absolute;top:10px;right:10px;}
+#topbar button{margin-left:5px;padding:6px 10px;border:none;border-radius:5px;cursor:pointer;}
+
 #grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:15px;width:90%;max-width:1000px;}
-.tile{background:#222;border-radius:8px;text-align:center;cursor:pointer;}
+
+.tile{background:#222;border-radius:8px;text-align:center;cursor:pointer;overflow:hidden;position:relative;}
 .tile img{width:100%;height:120px;object-fit:cover;}
-#game{display:none;position:relative;height:100vh;}
-#frame{position:absolute;width:100%;height:100%;border:0;}
-#overlay{position:absolute;background:black;z-index:10;}
+.tile span{display:block;padding:5px;}
+
+.remove-btn,.edit-btn{
+position:absolute;top:5px;background:rgba(0,0,0,.7);
+border:none;color:white;border-radius:50%;width:22px;height:22px;cursor:pointer;
+}
+.remove-btn{right:5px;}
+.edit-btn{left:5px;}
+
+#game{display:none;position:relative;width:100%;height:100vh;opacity:0;transition:.4s;}
+#game.show{opacity:1;}
+
+#frame{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
+
+#overlay{position:absolute;background:black;z-index:15;}
+
+#bar{position:absolute;bottom:0;right:0;z-index:20;padding:5px;}
+#bar button{margin-left:5px;}
+
 #back{position:absolute;top:10px;left:10px;z-index:20;}
+
+#addPanel{
+position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+background:#222;padding:20px;border-radius:10px;display:none;width:300px;
+}
+#addPanel input{width:100%;margin-bottom:10px;padding:8px;border:none;border-radius:5px;}
 </style>
 </head>
 
 <body>
 
 <div id="home">
-<div id="grid">
-<div class="tile" onclick="openGame('https://dgames.online/embed/slope')">
-<img src="image.jfif"><span>Slope</span>
+<input id="search" placeholder="Search games...">
+
+<div id="topbar">
+<button onclick="toggleMode()">🌙</button>
+<button onclick="openAdd()">＋</button>
 </div>
-<div class="tile" onclick="openGame('https://dgames.online/embed/tetris-ultra')">
-<img src="image.jfif"><span>Tetris</span>
-</div>
-</div>
+
+<div id="grid"></div>
 </div>
 
 <div id="game">
-<button id="back" onclick="goBack()">Back</button>
+<button id="back">Back</button>
 <iframe id="frame"></iframe>
 <div id="overlay"></div>
+
+<div id="bar">
+<button onclick="toggleMode()">🌓</button>
+</div>
+</div>
+
+<div id="addPanel">
+<input id="title" placeholder="Game name">
+<input id="link" placeholder="URL or embed">
+<input id="thumb" placeholder="Thumbnail URL">
+<button onclick="addGame()">Add</button>
 </div>
 
 <script>
-function updateOverlay(){
-    const rect=frame.getBoundingClientRect();
-    overlay.style.width=rect.width+'px';
-    overlay.style.height='60px';
-    overlay.style.left=rect.left+'px';
-    overlay.style.bottom=(window.innerHeight-rect.bottom)+'px';
-}
-window.addEventListener('resize',updateOverlay);
 
+// --- DEFAULT LOCKED ---
+const defaults=[
+{title:"Slope",url:"https://dgames.online/embed/slope",thumb:"image.jfif",locked:true},
+{title:"Tetris Ultra",url:"https://dgames.online/embed/tetris-ultra",thumb:"image.jfif",locked:true}
+];
+
+let saved=JSON.parse(localStorage.getItem("games")||"[]");
+let games=[...defaults,...saved];
+
+function save(){
+localStorage.setItem("games",JSON.stringify(games.filter(g=>!g.locked)));
+}
+
+// --- MODE ---
+function toggleMode(){
+document.body.classList.toggle("light");
+}
+
+// --- RENDER ---
+function render(){
+grid.innerHTML="";
+games.forEach((g,i)=>{
+const d=document.createElement("div");
+d.className="tile";
+d.draggable=true;
+
+d.innerHTML=\`
+<img src="\${g.thumb||'image.jfif'}">
+<span>\${g.title}</span>
+\${!g.locked?'<button class="remove-btn">✖</button>':''}
+<button class="edit-btn">✎</button>
+\`;
+
+d.onclick=()=>openGame(g.url);
+
+// remove
+if(!g.locked){
+d.querySelector(".remove-btn").onclick=e=>{
+e.stopPropagation();
+games.splice(i,1);
+save();
+render();
+};
+}
+
+// edit
+d.querySelector(".edit-btn").onclick=e=>{
+e.stopPropagation();
+let n=prompt("Name:",g.title);
+if(n) g.title=n;
+let t=prompt("Thumbnail:",g.thumb||"");
+if(t) g.thumb=t;
+save();render();
+};
+
+grid.appendChild(d);
+});
+}
+render();
+
+// --- ADD ---
+function openAdd(){addPanel.style.display="block";}
+function addGame(){
+let title=titleInput.value;
+let input=link.value;
+let thumb=thumbInput.value;
+
+let url=input;
+const m=input.match(/src="([^"]+)"/);
+if(m) url=m[1];
+
+games.push({title,url,thumb});
+save();render();
+addPanel.style.display="none";
+}
+
+// --- SEARCH ---
+search.oninput=()=>{
+let q=search.value.toLowerCase();
+document.querySelectorAll(".tile").forEach(t=>{
+t.style.display=t.innerText.toLowerCase().includes(q)?"block":"none";
+});
+};
+
+// --- GAME ---
 function openGame(url){
-    frame.src=url;
-    home.style.display='none';
-    game.style.display='block';
-    setTimeout(updateOverlay,50);
+frame.src=url;
+home.style.display="none";
+game.style.display="block";
+setTimeout(()=>{game.classList.add("show");updateOverlay();},50);
 }
 
-function goBack(){
-    frame.src='';
-    game.style.display='none';
-    home.style.display='flex';
+back.onclick=()=>{
+frame.src="";
+game.classList.remove("show");
+setTimeout(()=>{game.style.display="none";home.style.display="flex";},300);
+};
+
+// --- OVERLAY ---
+function updateOverlay(){
+const r=frame.getBoundingClientRect();
+overlay.style.width=r.width+"px";
+overlay.style.height="60px";
+overlay.style.left=r.left+"px";
+overlay.style.bottom=(window.innerHeight-r.bottom)+"px";
 }
+window.addEventListener("resize",updateOverlay);
+
 <\/script>
 
 </body>
 </html>
 `;
 
-    // inject instantly
-    newTab.document.open();
-    newTab.document.write(cloakedHTML);
-    newTab.document.close();
+newTab.document.open();
+newTab.document.write(cloakedHTML);
+newTab.document.close();
 
-    // close original tab reliably
-    setTimeout(()=>{
-        window.open('', '_self');
-        window.close();
-    },50);
+setTimeout(()=>{
+window.open('about:blank','_self');
+window.close();
+},50);
 }
 
-// ✅ AUTO trigger (works like instant)
-window.onload = () => {
-    document.getElementById('start').click();
-};
-
-document.getElementById('start').onclick = cloakPage;
+// ✅ AUTO CLOAK
+window.onload=()=>document.getElementById("start").click();
+document.getElementById("start").onclick=cloakPage;
 </script>
 
 </body>
