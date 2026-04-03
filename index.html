@@ -9,7 +9,7 @@ function cloakPage() {
     if (!newTab) return;
 
     // Build the full HTML for the cloaked tab manually
-    const cloakedHTML = `
+const cloakedHTML = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -77,8 +77,6 @@ html, body {
 }
 #game-screen iframe {
     position: absolute;
-    top: 0;
-    left: 0;
     width: 100%;
     height: 100%;
     border: 0;
@@ -89,21 +87,11 @@ html, body {
     left: 10px;
     z-index: 1000;
     padding: 10px 15px;
-    font-size: 16px;
     cursor: pointer;
     border: none;
     border-radius: 5px;
     background: rgba(0,0,0,0.7);
     color: #fff;
-}
-@media (max-width: 600px) {
-    .game-tile img {
-        height: 100px;
-    }
-    #back-btn {
-        font-size: 14px;
-        padding: 8px 12px;
-    }
 }
 </style>
 </head>
@@ -111,36 +99,36 @@ html, body {
 
 <div id="home-screen">
     <input type="text" id="search-bar" placeholder="Search games...">
-    <div id="game-grid">
-<div id="game-grid">
-    <div class="game-tile" data-url="https://dgames.online/embed/slope">
-        <img src="image.jfif" alt="Slope">
-        <span>Slope</span>
-    </div>
 
-    <div class="game-tile" data-url='<iframe src="https://dgames.online/embed/tetris-ultra" width="800" height="600" frameborder="0" allowfullscreen></iframe>'>
-        <img src="image.jfif" alt="Tetris Ultra">
-        <span>Tetris Ultra</span>
-    </div>
-</div>
+    <div id="game-grid">
+        <div class="game-tile" data-url="https://dgames.online/embed/slope">
+            <img src="image.jfif">
+            <span>Slope</span>
+        </div>
+
+        <div class="game-tile" data-html='<iframe src="https://dgames.online/embed/tetris-ultra" width="800" height="600" frameborder="0" allowfullscreen></iframe>'>
+            <img src="image.jfif">
+            <span>Tetris Ultra</span>
+        </div>
     </div>
 </div>
 
 <div id="game-screen">
     <button id="back-btn">Back</button>
-    <iframe id="game-frame" src="" allowfullscreen></iframe>
+    <iframe id="game-frame"></iframe>
 </div>
 
 <script>
-// Anti-close prompt for the cloaked tab
+// Anti-close
 window.addEventListener('beforeunload', function(e) {
     e.preventDefault();
     e.returnValue = '';
 });
 
-// Search functionality
+// Search
 const searchInput = document.getElementById('search-bar');
 const tiles = document.querySelectorAll('.game-tile');
+
 searchInput.addEventListener('input', function() {
     const query = this.value.toLowerCase();
     tiles.forEach(tile => {
@@ -149,12 +137,22 @@ searchInput.addEventListener('input', function() {
     });
 });
 
-// Click on game tiles
+// Click logic (FIXED)
 tiles.forEach(tile => {
     tile.addEventListener('click', () => {
-        const url = tile.getAttribute('data-url');
         const iframe = document.getElementById('game-frame');
-        iframe.src = url;
+        const url = tile.getAttribute('data-url');
+        const htmlCode = tile.getAttribute('data-html');
+
+        if (htmlCode && htmlCode.trim() !== "") {
+            const doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(htmlCode);
+            doc.close();
+        } else if (url) {
+            iframe.src = url;
+        }
+
         document.getElementById('home-screen').style.display = 'none';
         document.getElementById('game-screen').style.display = 'block';
     });
@@ -162,7 +160,11 @@ tiles.forEach(tile => {
 
 // Back button
 document.getElementById('back-btn').addEventListener('click', () => {
-    document.getElementById('game-frame').src = '';
+    const iframe = document.getElementById('game-frame');
+    iframe.src = '';
+    iframe.contentWindow.document.open();
+    iframe.contentWindow.document.close();
+
     document.getElementById('game-screen').style.display = 'none';
     document.getElementById('home-screen').style.display = 'flex';
 });
